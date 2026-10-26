@@ -1,150 +1,95 @@
-import React, { useEffect, useState } from 'react';
-import { Header } from './components/Header';
-import { SyncMonitorModal } from './components/SyncMonitorModal';
-import { DashboardView } from './components/DashboardView';
-import { VehiculesView } from './components/VehiculesView';
-import { ClientsView } from './components/ClientsView';
-import { VentesView } from './components/VentesView';
-import { CaisseView } from './components/CaisseView';
-import { PinLockModal } from './components/PinLockModal';
-import { seedInitialDataIfEmpty } from './services/db';
-import { syncEngine } from './services/syncEngine';
-import { getOrCreateDeviceId } from './services/crypto';
-import type { SyncStats, UserSession } from './types';
-import type { Language } from './i18n/translations';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ShieldAlert } from 'lucide-react';
+import { AppProvider, useApp } from './app-context';
+import { ToastProvider } from './components/toast';
+import { Layout, pageAllowed } from './components/Layout';
+import { EmptyState } from './components/ui';
+import { hasAnyUser, logout, restoreSession } from './lib/auth';
+import type { SessionUser } from './lib/types';
+import { LoginPage } from './pages/Login';
+import { DashboardPage } from './pages/Dashboard';
+import { VehiculesPage } from './pages/Vehicules';
+import { MouvementsPage } from './pages/Mouvements';
+import { AchatsPage } from './pages/Achats';
+import { FournisseursPage } from './pages/Fournisseurs';
+import { VentesPage } from './pages/Ventes';
+import { ClientsPage } from './pages/Clients';
+import { CaissePage } from './pages/Caisse';
+import { DepensesPage } from './pages/Depenses';
+import { RapportsPage } from './pages/Rapports';
+import { UtilisateursPage } from './pages/Utilisateurs';
+import { ParametresPage } from './pages/Parametres';
+import { AuditPage } from './pages/Audit';
+
+const INACTIVITY_MS = 15 * 60 * 1000;
+
+function Router() {
+  const { route, can } = useApp();
+  if (!pageAllowed(route.page, can)) {
+    return <EmptyState icon={<ShieldAlert className="h-8 w-8" />} title="Accès non autorisé" text="Votre profil ne donne pas accès à cette page. Demandez à un administrateur si vous en avez besoin." />;
+  }
+  switch (route.page) {
+    case 'dashboard': return <DashboardPage />;
+    case 'vehicules': return <VehiculesPage />;
+    case 'mouvements': return <MouvementsPage />;
+    case 'achats': return <AchatsPage />;
+    case 'fournisseurs': return <FournisseursPage />;
+    case 'ventes': return <VentesPage />;
+    case 'clients': return <ClientsPage />;
+    case 'caisse': return <CaissePage />;
+    case 'depenses': return <DepensesPage />;
+    case 'rapports': return <RapportsPage />;
+    case 'utilisateurs': return <UtilisateursPage />;
+    case 'parametres': return <ParametresPage />;
+    case 'audit': return <AuditPage />;
+  }
+}
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<string>('dashboard');
-  const [lang, setLang] = useState<Language>('fr');
-  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
-  const [syncStats, setSyncStats] = useState<SyncStats>({
-    isOnline: true,
-    isSimulatedOffline: false,
-    isSyncing: false,
-    pendingCount: 0,
-    conflictCount: 0,
-    errorCount: 0,
-    lastSyncTimestamp: Date.now(),
-    lastServerSeq: 0,
-    latencyMs: 12,
-  });
+  const [state, setState] = useState<{ loading: boolean; user: SessionUser | null; firstRun: boolean }>({ loading: true, user: null, firstRun: false });
 
-  const [userSession, setUserSession] = useState<UserSession>(() => {
-    const { deviceId, deviceName } = getOrCreateDeviceId();
-    return {
-      id: 'usr-1',
-      nom: 'Karim Hadj',
-      role: 'gerant',
-      code_pin: '1234',
-      device_id: deviceId,
-      device_name: deviceName,
-      derniere_activite: Date.now(),
-      is_locked: false,
-    };
-  });
-
-  // Initialisation de la base locale & écouteur de synchronisation
   useEffect(() => {
-    seedInitialDataIfEmpty().catch(console.error);
-
-    const unsubscribe = syncEngine.subscribe((stats) => {
-      setSyncStats(stats);
-    });
-
-    return () => {
-      unsubscribe();
-    };
+    (async () => {
+      const user = await restoreSession();
+      const firstRun = !(await hasAnyUser());
+      setState({ loading: false, user, firstRun });
+    })();
   }, []);
 
-  // Gestion dynamique de la direction LTR / RTL selon la langue
+  const handleLogout = useCallback(async (reason?: string) => {
+    await logout(state.user, reason);
+    setState((s) => ({ ...s, user: null }));
+  }, [state.user]);
+
+  // Déconnexion automatique après 15 minutes sans activité (poste partagé au showroom)
   useEffect(() => {
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = lang;
-  }, [lang]);
+    if (!state.user) return;
+    let timer = setTimeout(() => handleLogout('Déconnexion automatique (inactivité)'), INACTIVITY_MS);
+    const reset = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => handleLogout('Déconnexion automatique (inactivité)'), INACTIVITY_MS);
+    };
+    const events = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'];
+    events.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+    return () => {
+      clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, reset));
+    };
+  }, [state.user, handleLogout]);
 
-  const handleToggleLang = () => {
-    setLang((prev) => (prev === 'fr' ? 'ar' : 'fr'));
-  };
-
-  const handleUnlockSession = (enteredPin: string) => {
-    if (enteredPin === userSession.code_pin || enteredPin === '1234') {
-      setUserSession((prev) => ({
-        ...prev,
-        is_locked: false,
-        derniere_activite: Date.now(),
-      }));
-      return true;
-    }
-    return false;
-  };
-
-  const handleLockSession = () => {
-    setUserSession((prev) => ({ ...prev, is_locked: true }));
-  };
-
-  const handleChangeUser = (updated: Partial<UserSession>) => {
-    setUserSession((prev) => ({ ...prev, ...updated }));
-  };
+  if (state.loading) return <div className="flex h-full items-center justify-center text-muted">Chargement…</div>;
 
   return (
-    <div className="min-h-screen bg-[#0b1120] text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
-      {/* Top Header */}
-      <Header
-        currentView={currentView}
-        onNavigate={setCurrentView}
-        syncStats={syncStats}
-        lang={lang}
-        onToggleLang={handleToggleLang}
-        onOpenSyncModal={() => setIsSyncModalOpen(true)}
-        onToggleSimulateOffline={() => syncEngine.toggleSimulatedOffline()}
-        onManualSync={() => syncEngine.triggerSync()}
-        userSession={userSession}
-        onLockSession={handleLockSession}
-      />
-
-      {/* Main Viewport Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {currentView === 'dashboard' && (
-          <DashboardView
-            onNavigate={setCurrentView}
-            syncStats={syncStats}
-            lang={lang}
-          />
-        )}
-
-        {currentView === 'vehicules' && (
-          <VehiculesView lang={lang} />
-        )}
-
-        {currentView === 'clients' && (
-          <ClientsView lang={lang} />
-        )}
-
-        {currentView === 'ventes' && (
-          <VentesView syncStats={syncStats} lang={lang} />
-        )}
-
-        {currentView === 'caisse' && (
-          <CaisseView syncStats={syncStats} lang={lang} />
-        )}
-      </main>
-
-      {/* Sync Monitor & Outbox Modal */}
-      <SyncMonitorModal
-        isOpen={isSyncModalOpen}
-        onClose={() => setIsSyncModalOpen(false)}
-        syncStats={syncStats}
-        lang={lang}
-      />
-
-      {/* Session Lock Modal */}
-      <PinLockModal
-        isOpen={userSession.is_locked}
-        onUnlock={handleUnlockSession}
-        currentUser={userSession}
-        onChangeUser={handleChangeUser}
-        lang={lang}
-      />
-    </div>
+    <ToastProvider>
+      {state.user ? (
+        <AppProvider user={state.user} onLogout={() => handleLogout()}>
+          <Layout>
+            <Router />
+          </Layout>
+        </AppProvider>
+      ) : (
+        <LoginPage firstRun={state.firstRun} onLoggedIn={(user) => { window.location.hash = '/dashboard'; setState({ loading: false, user, firstRun: false }); }} />
+      )}
+    </ToastProvider>
   );
 }
