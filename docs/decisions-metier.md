@@ -22,3 +22,24 @@ Décisions prises par le responsable du projet le 26/10/2026. Elles s'appliquent
 
 - La remise est saisie en HT.
 - Les mentions légales de la facture (NIF, NIS, RC, article d'imposition, mode de règlement) sont à faire valider par le comptable du showroom.
+
+## Règles fiscales algériennes appliquées (version initiale, à faire valider par le comptable)
+
+Ces règles sont codées comme **paramètres modifiables** : un changement de loi de finances ne demandera pas de toucher au code.
+
+1. **TVA** : taux choisi à chaque vente, 0 %, 9 % ou 19 % (19 % = taux normal). Arrondi au dinar.
+2. **Véhicule d'occasion acheté à un particulier** : option « TVA sur la marge » (19 % appliqués à prix de vente HT − prix d'achat, selon la LF 2017). Cette règle est contestée par certains fiscalistes, donc le choix est fait vente par vente.
+3. **Droit de timbre sur paiement en espèces** (Code du timbre, barème LF 2025) :
+   - calculé sur le montant TTC payé en espèces, par tranche de 100 DA entamée ;
+   - jusqu'à 300 DA : aucun droit ; de 301 à 30 000 DA : 1 DA par tranche ; de 30 001 à 100 000 DA : 1,50 DA par tranche ; au-delà de 100 000 DA : 2 DA par tranche ;
+   - minimum 5 DA, pas de plafond ;
+   - aucun droit pour les paiements par virement, carte (TPE) ou CCP ;
+   - le droit figure sur une ligne à part du reçu ou de la facture.
+4. **Plafond des paiements en espèces** : un seuil paramétrable (500 000 DA par défaut, selon l'art. 37 de la loi 05-01). Au-delà, l'application affiche un avertissement et demande l'accord d'un gérant. Le seuil exact applicable aux véhicules est à confirmer.
+5. **Mentions de la facture** (décret exécutif 05-468) :
+   - vendeur : raison sociale, forme juridique, activité, adresse, RC, NIS, NIF, article d'imposition, capital ;
+   - acheteur : nom et adresse (particulier), ou raison sociale, RC, NIS et NIF (entreprise) ;
+   - date et numéro d'ordre ;
+   - désignation, prix unitaire HT, total HT, taux et montant de TVA, total TTC en chiffres et en lettres ;
+   - mode et date de règlement ;
+   - signature et cachet.
