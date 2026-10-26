@@ -1,0 +1,309 @@
+
+
+
+CAHIER DES CHARGES
+APPLICATION WEB DE GESTION
+D’UN SHOWROOM AUTOMOBILE
+
+Gestion des véhicules neufs et d’occasion
+Marché cible : Algérie | Devise : DZD
+Architecture cible : React, TypeScript et Supabase PostgreSQL
+
+Version 1.0 — Octobre 2026
+
+ 1. Présentation du projet
+1.1 Contexte
+Le projet consiste à concevoir et développer une application web centralisée destinée à un showroom automobile commercialisant des véhicules neufs et d’occasion. L’application doit remplacer les suivis dispersés sur papier, tableurs et messageries par un système unique, fiable, sécurisé et accessible selon le profil de chaque utilisateur.
+1.2 Objectifs
+ 
+•	Centraliser les informations relatives aux véhicules, clients, fournisseurs, achats, ventes et paiements.
+•	Suivre les véhicules depuis leur acquisition jusqu’à leur vente ou leur sortie du stock.
+•	Gérer plusieurs dépôts et assurer la traçabilité de tous les mouvements de stock.
+•	Générer les documents commerciaux et administratifs nécessaires au showroom.
+•	Suivre les acomptes, règlements, dettes clients, dettes fournisseurs et dépenses.
+•	Conserver les pièces justificatives et documents scannés associés aux clients et aux opérations.
+•	Fournir des tableaux de bord et des rapports détaillés exportables vers Excel.
+•	Sécuriser l’accès aux données avec des comptes individuels, des rôles et une authentification renforcée.
+•	Proposer une interface en français et en arabe, adaptée aux ordinateurs, tablettes et téléphones.
+1.3 Périmètre
+Le périmètre couvre la gestion opérationnelle d’un showroom automobile. Les obligations légales, fiscales et comptables applicables en Algérie devront être confirmées par le responsable du showroom et, si nécessaire, par un professionnel habilité. La génération d’un document ne garantit pas à elle seule sa conformité juridique.
+2. Utilisateurs et droits d’accès
+2.1 Profils prévus
+•	Administrateur : paramétrage général, gestion des comptes, rôles, dépôts et accès aux données autorisées.
+•	Responsable du showroom : supervision des opérations, validation des ventes, retours, documents et rapports.
+•	Commercial : gestion des prospects, clients, rendez-vous, essais, réservations et opérations commerciales selon ses droits.
+•	Agent de stock : réception, affectation aux dépôts, transferts, inventaires et mouvements de véhicules.
+•	Agent financier/caisse : encaissements, décaissements, remboursements, soldes et rapprochements autorisés.
+•	Consultation/audit : accès en lecture seule aux modules explicitement autorisés.
+2.2 Exigences d’accès
+•	Chaque utilisateur doit disposer d’un compte nominatif ; les comptes partagés sont à éviter.
+•	Les autorisations doivent être configurables par module et par action : consulter, créer, modifier, valider, annuler, exporter et supprimer lorsque cela est permis.
+•	L’accès peut être limité à un ou plusieurs dépôts, à certaines opérations ou à certaines données.
+•	La désactivation d’un compte doit empêcher immédiatement toute nouvelle connexion et préserver l’historique.
+•	Les opérations sensibles doivent être réservées aux profils autorisés et, si nécessaire, soumises à une validation.
+3. Tableau de bord
+•	Nombre de véhicules en stock, réservés, vendus, en transit, en préparation ou indisponibles.
+•	Répartition du parc par dépôt, marque, modèle, année, état et statut commercial.
+•	Ventes par période, chiffre d’affaires, montants encaissés, acomptes, créances et remboursements.
+•	Dépenses, coûts d’acquisition, coûts complémentaires et marge estimée par véhicule.
+•	Réservations à confirmer, essais planifiés, livraisons prévues et échéances de paiement.
+•	Alertes sur les documents manquants, réservations expirées, paiements en retard et écarts de stock.
+•	Filtres par période, commercial, dépôt, marque, modèle et statut, selon les permissions.
+4. Gestion du parc automobile
+4.1 Fiche véhicule
+Chaque véhicule doit disposer d’une fiche détaillée contenant, selon les informations disponibles :
+•	Identifiant interne unique et référence de stock.
+•	Marque, modèle, finition, catégorie, année, couleur et type de carburant/énergie.
+•	Boîte de vitesses, kilométrage, puissance et caractéristiques utiles.
+•	Numéro de châssis/VIN, immatriculation si applicable et autres identifiants requis.
+•	État : neuf, occasion, en préparation, endommagé, en réparation ou autre statut paramétrable.
+•	Prix d’achat, frais annexes, coût total, prix de vente souhaité et prix réellement vendu.
+•	Fournisseur, date et document d’achat, dépôt actuel et emplacement éventuel.
+•	Photos, justificatifs, notes internes et historique des changements.
+•	Statut commercial : disponible, réservé, vendu, en transit, bloqué ou sorti du parc.
+4.2 Recherche et suivi
+•	Recherche par référence, VIN/châssis, marque, modèle, immatriculation ou statut.
+•	Filtres multicritères et affichage en liste ou en fiches.
+•	Historique horodaté des modifications, changements de prix et mouvements.
+•	Prévention des doublons sur les identifiants critiques, notamment le VIN lorsqu’il existe.
+5. Gestion des dépôts et des stocks
+5.1 Multi-dépôts
+•	Créer et administrer plusieurs dépôts avec code, nom, adresse, responsable et statut.
+•	Affecter chaque véhicule à un seul dépôt/emplacement courant à un instant donné.
+•	Consulter les stocks par dépôt, état, statut commercial et type de véhicule.
+•	Définir les droits d’accès des utilisateurs à chaque dépôt.
+5.2 Mouvements et transferts
+•	Enregistrer les entrées, sorties, transferts entre dépôts, mises en attente et corrections autorisées.
+•	Pour un transfert : dépôt source, dépôt destination, véhicule, demandeur, date, motif, statut et valideur.
+•	Prévoir les statuts : brouillon, demandé, validé, en transit, réceptionné, annulé.
+•	Ne modifier le dépôt courant qu’au moment prévu par le workflow de transfert.
+•	Conserver l’historique complet des mouvements avec l’utilisateur et l’horodatage.
+5.3 Inventaire
+•	Lancer un inventaire par dépôt et comparer le stock théorique au stock constaté.
+•	Enregistrer les écarts avec motif et validation obligatoire avant correction.
+•	Produire un rapport d’inventaire et exporter les résultats.
+6. Gestion des fournisseurs et des achats
+•	Créer une fiche fournisseur : coordonnées, identifiants administratifs utiles, contacts, notes et documents.
+•	Créer des commandes d’achat avec lignes, véhicules, prix, frais, taxes éventuelles, échéances et statut.
+•	Associer les factures, contrats, bons de commande et justificatifs reçus.
+•	Suivre les statuts : brouillon, soumis à validation, validé, partiellement reçu, reçu, clôturé ou annulé.
+•	Enregistrer les frais annexes par véhicule : transport, préparation, réparation, formalités ou autres frais paramétrables.
+•	Suivre les montants dus au fournisseur, les paiements effectués et le solde restant.
+•	Permettre la réception des véhicules dans un dépôt et créer les mouvements de stock correspondants.
+7. Gestion des clients et prospects (CRM)
+•	Créer une fiche particulier ou entreprise avec coordonnées et informations nécessaires à la vente.
+•	Enregistrer la source du prospect : visite, téléphone, Facebook, WhatsApp, site web, recommandation ou autre.
+•	Suivre le statut du prospect : nouveau, contacté, intéressé, rendez-vous, négociation, converti ou perdu.
+•	Conserver les notes, appels, messages consignés, rendez-vous, essais et historique des interactions.
+•	Associer plusieurs documents à un client avec catégorie, date, référence, auteur et niveau de confidentialité.
+•	Rechercher les clients et détecter les doublons raisonnables.
+•	Limiter l’accès aux données personnelles et ne collecter que les informations nécessaires.
+8. Pièces jointes, numérisation et documents clients
+8.1 Sources d’importation
+•	Téléverser des fichiers depuis un ordinateur, une tablette ou un téléphone.
+•	Permettre la prise de photo via la caméra du navigateur sur les appareils compatibles.
+•	Prendre en charge les scanners lorsque le poste, le navigateur et le matériel le permettent ; prévoir une solution alternative par import de PDF ou d’image.
+•	Accepter les formats autorisés, par exemple PDF, JPG et PNG, avec limites de taille configurables.
+8.2 Types de pièces et gestion
+•	Classer les pièces : pièce d’identité, passeport, justificatif, contrat, preuve de paiement et autre document configurable.
+•	Enregistrer le nom, la catégorie, la date de dépôt, le propriétaire du document et le lien vers le client ou l’opération.
+•	Afficher, télécharger, remplacer ou archiver les fichiers uniquement selon les droits accordés.
+•	Stocker les fichiers dans des espaces privés Supabase Storage ; utiliser des liens temporaires lorsque nécessaire.
+•	Contrôler les types et tailles de fichiers et appliquer des règles de sécurité adaptées.
+•	Prévoir l’OCR comme fonctionnalité optionnelle, avec validation humaine des données extraites.
+Les documents d’identité et autres pièces personnelles doivent être strictement protégés : leur accès doit être limité, journalisé et justifié par le besoin métier.
+9. Réservations, rendez-vous et essais
+•	Créer une réservation liée à un client et à un véhicule.
+•	Enregistrer date, durée, montant éventuel, acompte, conditions, commercial responsable et commentaires.
+•	Prévoir les statuts : demande, en attente, confirmée, expirée, annulée, convertie en vente.
+•	Empêcher deux réservations confirmées incompatibles pour un même véhicule, selon les règles définies.
+•	Gérer les rendez-vous et essais avec date, heure, responsable, résultat et suivi.
+•	Définir les règles de durée, d’expiration, de remboursement ou d’imputation de l’acompte.
+10. Ventes et livraison
+10.1 Dossier de vente
+•	Créer une vente à partir d’un client et d’un véhicule disponible ou réservé.
+•	Enregistrer prix convenu, remise autorisée, frais, montant total, acompte, échéancier et mode de paiement.
+•	Vérifier la disponibilité du véhicule et empêcher sa vente simultanée à plusieurs clients.
+•	Gérer les statuts : brouillon, en validation, confirmée, partiellement payée, payée, livrée, annulée ou retournée.
+•	Associer les documents, paiements, justificatifs et responsables à la transaction.
+•	À la validation, mettre à jour le statut commercial du véhicule et les mouvements associés conformément au workflow.
+10.2 Livraison / sortie du véhicule
+•	Créer un dossier de livraison avec client, véhicule, date, kilométrage, état de sortie, accessoires et réserves éventuelles.
+•	Générer un bon de sortie ou de livraison.
+•	Enregistrer les signatures ou confirmations selon les capacités du système.
+•	Vérifier les documents obligatoires et les validations requises avant la sortie, selon les règles du showroom.
+•	Archiver le dossier de livraison et préserver son historique.
+11. Caisse, paiements et créances
+•	Enregistrer les encaissements liés aux ventes, réservations et autres opérations autorisées.
+•	Gérer les modes de paiement configurables : espèces, virement, chèque, paiement électronique ou autre mode autorisé.
+•	Générer un reçu pour chaque paiement validé, avec référence unique.
+•	Gérer les paiements partiels, acomptes, échéances, soldes dus et retards.
+•	Enregistrer les remboursements avec motif, approbation et lien vers la transaction d’origine.
+•	Suivre les sommes dues par client et les sommes dues aux fournisseurs.
+•	Enregistrer les décaissements et dépenses selon les autorisations.
+•	Ne jamais modifier ou supprimer silencieusement une opération financière validée : utiliser une annulation ou une correction tracée.
+•	Produire un journal de caisse par période, utilisateur et mode de paiement.
+12. Dépenses et rentabilité
+•	Enregistrer les dépenses générales et les frais rattachés à un véhicule ou à une vente.
+•	Catégoriser les dépenses : transport, entretien, réparation, préparation, frais administratifs, communication et autres catégories paramétrables.
+•	Joindre les justificatifs et enregistrer le fournisseur, la date, le montant et le mode de règlement.
+•	Calculer une marge estimée par véhicule : prix de vente moins coût d’acquisition et frais attribués, selon les règles retenues.
+•	Distinguer chiffre d’affaires, montants facturés, encaissements, créances, dépenses et marge estimée.
+•	Documenter les règles de calcul et permettre au responsable autorisé de les paramétrer.
+13. Retours, annulations et réintégration en stock
+13.1 Workflow de retour
+•	Créer une demande de retour liée à la vente d’origine, au client et au véhicule.
+•	Enregistrer le motif, la date, l’état du véhicule, les pièces justificatives et les observations.
+•	Prévoir les statuts : demandé, en contrôle, accepté, refusé, en attente de remboursement, clôturé.
+•	Soumettre le retour à un responsable autorisé avant toute réintégration ou remboursement.
+•	Définir le dépôt de réintégration et l’état du véhicule après contrôle : disponible, inspection, réparation, bloqué ou autre.
+•	Créer un mouvement de stock traçable lors de la réintégration approuvée.
+•	Traiter le remboursement ou l’avoir séparément, avec lien vers le paiement et la vente d’origine.
+•	Préserver la vente d’origine et l’historique ; ne pas effacer les transactions validées.
+13.2 Annulations
+Les annulations de ventes, réservations, commandes, transferts ou documents doivent respecter les droits et validations prévus. Le système doit conserver l’opération initiale, le motif, l’auteur, la date et les effets produits sur le stock et les paiements.
+14. Génération et gestion des documents
+14.1 Documents à produire
+•	Contrat de vente et document de réservation.
+•	Reçu d’acompte, reçu de paiement et reçu de remboursement.
+•	Facture ou document de vente selon les exigences validées par le showroom et la réglementation applicable.
+•	Bon de sortie, bon de livraison et fiche d’état du véhicule.
+•	Bon de commande fournisseur, document de réception et document de transfert entre dépôts.
+•	Documents de retour, d’annulation et de réintégration en stock.
+•	États de stock, inventaires, rapports commerciaux, financiers et autres documents configurables.
+14.2 Règles de génération
+•	Proposer des modèles personnalisables avec logo, coordonnées, informations légales et mentions validées.
+•	Générer des PDF prêts à imprimer et prévoir une version imprimable depuis le navigateur.
+•	Attribuer une référence unique selon des règles de numérotation configurables et contrôlées.
+•	Insérer automatiquement les données issues des dossiers validés et éviter les ressaisies.
+•	Gérer les états : brouillon, validé, émis, annulé et archivé lorsque pertinent.
+•	Archiver la version émise du document et conserver la trace des modifications ultérieures.
+•	Limiter la création, validation, annulation et réédition aux utilisateurs habilités.
+•	Prévoir une gestion explicite des documents corrigés ou remplacés, sans falsifier l’historique.
+Les modèles, mentions et numérotations définitifs devront être validés avant la mise en production, notamment pour les factures et contrats.
+15. Reporting et exports
+15.1 Rapports requis par module
+•	Parc automobile : stock actuel, historique, véhicules disponibles/réservés/vendus, ancienneté du stock et répartition par dépôt.
+•	Achats : commandes, réceptions, coûts d’acquisition, frais annexes, paiements fournisseurs et soldes.
+•	Clients/CRM : prospects par source et statut, conversions, activités commerciales et clients à relancer.
+•	Réservations : réservations en cours, expirées, annulées, acomptes et conversions en ventes.
+•	Ventes : ventes par période, véhicule, marque, commercial, statut, client et dépôt.
+•	Finances : encaissements, remboursements, créances clients, dettes fournisseurs, dépenses et journal de caisse.
+•	Rentabilité : coût total par véhicule, prix de vente, frais imputés et marge estimée.
+•	Stocks : mouvements, transferts, écarts d’inventaire, retours et réintégrations.
+•	Documents : documents générés, manquants, annulés ou en attente de validation.
+•	Sécurité/audit : connexions et opérations sensibles accessibles aux responsables habilités.
+15.2 Fonctionnalités de reporting
+•	Filtres par période, dépôt, utilisateur, commercial, client, fournisseur, véhicule, marque, statut et mode de paiement.
+•	Totaux, sous-totaux, indicateurs et graphiques adaptés au rapport.
+•	Export Excel (.xlsx), CSV et PDF selon les droits de l’utilisateur.
+•	Respect des filtres appliqués, des formats de dates et des montants en DZD.
+•	Vérification des permissions avant affichage ou export ; ne jamais exporter des données auxquelles l’utilisateur n’a pas accès.
+16. Interface, thèmes et ergonomie
+•	Interface professionnelle, claire et simple à utiliser pour les équipes commerciales et administratives.
+•	Navigation par modules, recherche rapide, filtres, pagination et formulaires avec messages d’erreur compréhensibles.
+•	Adaptation aux ordinateurs, tablettes et smartphones.
+•	Thèmes clair et sombre, avec possibilité de personnaliser certaines couleurs et préférences d’affichage.
+•	Mémorisation des préférences de thème par utilisateur lorsque cela est approprié.
+•	Confirmation avant les actions sensibles et affichage explicite du résultat d’une opération.
+•	Accessibilité raisonnable : contrastes lisibles, libellés clairs et navigation au clavier lorsque possible.
+17. Français et arabe
+•	Prévoir une interface bilingue français/arabe.
+•	Permettre à chaque utilisateur de choisir sa langue préférée.
+•	Adapter la mise en page à l’arabe, avec prise en charge correcte du sens droite-à-gauche (RTL).
+•	Traduire les menus, boutons, validations, notifications, statuts et modèles de documents.
+•	Vérifier l’affichage des chiffres, dates, noms, montants et documents PDF dans les deux langues.
+•	Éviter de mélanger les directions de texte dans les formulaires et tableaux.
+18. Sécurité, authentification et confidentialité
+18.1 Authentification
+•	Utiliser Supabase Auth pour l’authentification et la gestion des sessions.
+•	Prévoir des règles de mot de passe et un mécanisme sécurisé de récupération de compte.
+•	Mettre en place une authentification multifacteur (MFA) pour les profils définis, notamment les commerciaux et utilisateurs sensibles.
+•	Privilégier la MFA TOTP compatible avec Google Authenticator ou une application équivalente.
+•	Proposer le SMS uniquement si un fournisseur compatible est configuré, sécurisé et testé.
+•	Prévoir des codes de récupération, une procédure de réinitialisation contrôlée et une révocation des sessions si nécessaire.
+18.2 Protection technique
+•	Utiliser HTTPS/TLS en production et ne jamais transmettre de données d’authentification en clair.
+•	Activer Row Level Security (RLS) sur toutes les tables contenant des données applicatives sensibles.
+•	Appliquer les contrôles d’autorisation côté serveur/base de données ; masquer un bouton dans l’interface ne suffit pas.
+•	Ne jamais exposer la clé secrète Supabase service_role dans le frontend.
+•	Protéger les fichiers avec des règles d’accès privées, validation de type et de taille, et liens temporaires si besoin.
+•	Journaliser les opérations sensibles : connexion, changement de droits, validation, annulation, export et modification financière.
+•	Prévoir sauvegardes, stratégie de restauration, mises à jour des dépendances et gestion des erreurs sans divulguer de secrets.
+•	Limiter les tentatives de connexion et appliquer les protections offertes par la plateforme.
+18.3 Confidentialité et conservation
+Définir avec le responsable du showroom les durées de conservation, les droits d’accès, les procédures d’archivage et de suppression, ainsi que les obligations applicables aux données personnelles et aux documents d’identité. Les données ne doivent être visibles qu’aux personnes qui en ont besoin pour leur fonction.
+19. Base de données et modèle fonctionnel
+La base de données sera implémentée dans PostgreSQL via Supabase. Le modèle exact sera détaillé avant le développement et versionné avec des migrations. Les entités principales à prévoir comprennent notamment :
+•	profiles, roles, permissions, user_roles et restrictions d’accès aux dépôts ;
+•	showrooms, depots, depot_locations ;
+•	vehicles, vehicle_photos, vehicle_documents, vehicle_status_history ;
+•	suppliers, purchase_orders, purchase_order_items, vehicle_costs, goods_receipts ;
+•	customers, customer_contacts, leads, interactions, appointments, test_drives ;
+•	reservations, sales, sale_items, deliveries ;
+•	payments, refunds, cash_movements, expenses ;
+•	stock_movements, stock_transfers, inventory_sessions, inventory_lines ;
+•	returns, return_inspections, return_stock_movements ;
+•	documents, document_templates, document_sequences, attachments ;
+•	audit_logs, application_settings et ressources de langue.
+Les relations, clés étrangères, index, contraintes d’unicité, statuts autorisés, règles de suppression et politiques RLS doivent être documentés et testés. Les données financières et l’historique des transactions doivent rester cohérents en cas d’échec partiel.
+20. Exigences non fonctionnelles
+•	Fiabilité : opérations transactionnelles cohérentes, messages d’erreur explicites et absence de doublons en cas de double clic ou de nouvelle tentative.
+•	Performance : pagination des listes volumineuses, recherche efficace et chargement raisonnable des tableaux de bord.
+•	Maintenabilité : code organisé par modules, composants réutilisables, types TypeScript et conventions documentées.
+•	Traçabilité : auteur, date et historique pour les opérations métier importantes.
+•	Compatibilité : versions récentes des navigateurs courants sur ordinateur et mobile.
+•	Sauvegarde et reprise : définir la fréquence des sauvegardes, la durée de conservation et la procédure de restauration.
+•	Configuration : séparer les paramètres d’environnement et les secrets du code source.
+•	Qualité : tests automatisés pour les règles métier critiques et tests d’acceptation avant mise en production.
+21. Scénarios de test et critères de recette
+•	Créer un véhicule, le recevoir dans un dépôt, le transférer vers un autre dépôt et vérifier son historique.
+•	Créer un client, importer une pièce jointe depuis PC et téléphone, puis vérifier que seuls les utilisateurs autorisés y accèdent.
+•	Créer une réservation avec acompte, la confirmer, l’annuler et vérifier le traitement de l’acompte selon la règle définie.
+•	Créer une vente avec paiement partiel, générer les documents et vérifier le solde restant.
+•	Générer un reçu, un contrat et un bon de livraison en PDF avec numérotation et données correctes.
+•	Enregistrer une dépense et vérifier son impact sur le coût et la marge estimée du véhicule.
+•	Effectuer un retour approuvé, réintégrer le véhicule au dépôt prévu et enregistrer le remboursement éventuel.
+•	Tester les rôles : un utilisateur non autorisé ne doit ni consulter ni modifier les données protégées, même en appelant directement l’API.
+•	Tester l’activation et la récupération MFA, notamment TOTP et SMS si cette option est retenue.
+•	Exporter chaque rapport en Excel et vérifier les filtres, totaux, dates et montants.
+•	Vérifier l’interface française et arabe, le RTL et les documents générés dans les deux langues.
+•	Tester les erreurs réseau, les doubles soumissions, les annulations et la restauration de sauvegarde.
+La recette sera acceptable lorsque les scénarios convenus auront été exécutés avec succès, que les anomalies bloquantes auront été corrigées et que les responsables métier auront validé les documents et règles de calcul.
+22. Livrables attendus
+•	Application web fonctionnelle avec code source organisé.
+•	Schéma de base de données PostgreSQL et scripts de migrations.
+•	Politiques RLS, configuration des rôles et documentation de sécurité.
+•	Modèles de documents et paramètres de numérotation validés.
+•	Rapports, exports Excel/CSV/PDF et tableaux de bord.
+•	Jeux de tests et compte rendu de recette.
+•	Guide d’administration et guide utilisateur en français ; aide en arabe selon le périmètre retenu.
+•	Instructions de déploiement, configuration des variables d’environnement et procédure de sauvegarde/restauration.
+23. Phasage recommandé
+1.	Phase 1 — Cadrage détaillé : validation des processus, rôles, statuts, documents, règles financières et obligations réglementaires.
+2.	Phase 2 — Socle technique : authentification, rôles, RLS, dépôts, journal d’audit et structure PostgreSQL.
+3.	Phase 3 — Référentiels : véhicules, clients, fournisseurs, pièces jointes et mouvements de stock.
+4.	Phase 4 — Opérations : achats, réservations, ventes, paiements, livraison, dépenses, retours et remboursements.
+5.	Phase 5 — Documents et reporting : génération PDF, modèles, exports Excel et tableaux de bord.
+6.	Phase 6 — Interface bilingue, thème clair/sombre, responsive et optimisation ergonomique.
+7.	Phase 7 — Tests de sécurité, recette utilisateur, corrections, formation et déploiement.
+24. Points à confirmer avant réalisation
+•	Identité légale, coordonnées, logo et mentions à afficher sur les documents.
+•	Types exacts de véhicules et informations obligatoires à enregistrer.
+•	Liste des dépôts et règles de transfert.
+•	Processus d’achat, de vente, de réservation, de livraison, de retour et d’annulation.
+•	Règles de remise, d’acompte, de remboursement, d’échéancier et de calcul de marge.
+•	Modèles des documents et règles de numérotation.
+•	Rôles réels, permissions et restrictions par dépôt.
+•	Fournisseur SMS éventuel pour la MFA et méthode de déploiement.
+•	Durées de conservation des pièces personnelles et règles de confidentialité.
+•	Rapports prioritaires et colonnes attendues dans chaque export.
+25. Consignes de réalisation et de validation
+Le développement doit être réalisé de manière incrémentale, module par module. Il faut éviter de produire uniquement une interface visuelle avec des données fictives. Chaque fonctionnalité doit être reliée à la base de données et testée de bout en bout.
+•	Ne pas déclarer une fonctionnalité terminée avant d’avoir testé ses parcours nominaux et ses erreurs.
+•	Ne pas utiliser de données de démonstration comme si elles étaient réelles ; les identifier clairement si elles sont nécessaires.
+•	Ne pas contourner les permissions, RLS, contrôles métier ou validations pour accélérer le développement.
+•	Ne pas exposer de clés secrètes, documents privés ou informations personnelles dans le frontend ou les journaux.
+•	Documenter toute fonctionnalité externe nécessitant une clé, un abonnement ou une configuration (SMS, OCR, stockage, e-mail).
+•	Signaler les décisions métier qui nécessitent une validation du showroom plutôt que d’inventer des règles.
+•	Conserver une liste des fonctionnalités livrées, partiellement réalisées, non configurées et restant à tester.

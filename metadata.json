@@ -1,0 +1,6 @@
+{
+  "name": "AutoGestion DZ — Showroom Automobile",
+  "description": "Application web professionnelle de gestion complète de showroom automobile en Algérie avec fonctionnement hors-ligne et synchronisation cloud.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
