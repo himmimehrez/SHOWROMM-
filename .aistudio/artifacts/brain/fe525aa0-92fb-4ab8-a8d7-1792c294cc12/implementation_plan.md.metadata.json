@@ -1,6 +1,0 @@
-{
-  "summary":  "Plan d'implémentation révisé avec spécifications techniques exhaustives sur la résilience de synchronisation (curseur stable, idempotence, pagination), le statut provisoire des ventes et documents hors ligne, la sécurité du stockage local (Web Crypto API AES-GCM, verrouillage de session), la reprise des transferts KYC vérifiés par hachage SHA-256, et la feuille de route de développement progressif par jalons validés.",
-  "updatedAt":  "2026-10-26T09:02:26.020141042Z",
-  "requestFeedback":  true,
-  "userFacing":  true
-}

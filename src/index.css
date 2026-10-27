@@ -1,55 +1,136 @@
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    --font-arabic: 'Cairo', 'Noto Sans Arabic', 'Segoe UI', Tahoma, Arial, sans-serif;
-    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
-  }
-
-  body {
-    font-family: var(--font-sans);
-    background-color: #0b1120;
-    color: #f1f5f9;
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-  }
-
-  [dir="rtl"] {
-    font-family: var(--font-arabic);
-  }
-
-  /* Monospace tabular figures for all numeric and currency values */
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
-  }
+/* Palette « béton & vert » : fond béton clair, encre ardoise, un seul accent vert profond.
+   Les couleurs vivent dans des variables pour basculer clair/sombre sans dupliquer les classes. */
+:root {
+  --bg: #eceeea;
+  --surface: #ffffff;
+  --surface-2: #f5f6f3;
+  --ink: #18211e;
+  --muted: #5d6a64;
+  --line: #d6dbd5;
+  --brand: #0d5c49;
+  --brand-hover: #0a4a3b;
+  --brand-soft: #e0eee8;
+  --brand-ink: #ffffff;
+  --side: #10302a;
+  --side-ink: #d7e4df;
+  --side-muted: #8fa9a0;
+  --side-active: #1d4a40;
+  --amber: #9a6510;
+  --amber-soft: #f7ecd6;
+  --red: #a8261b;
+  --red-soft: #f8e1de;
+  --blue: #2a5a86;
+  --blue-soft: #e1ebf5;
+  --green: #1f7a4d;
+  --green-soft: #dff1e6;
+  --font-ui: 'Schibsted Grotesk', system-ui, sans-serif;
+  --font-ar: 'IBM Plex Sans Arabic', 'Schibsted Grotesk', system-ui, sans-serif;
+  color-scheme: light;
 }
 
-/* Custom subtle scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.4);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.6);
+:root[data-theme='dark'] {
+  --bg: #0f1513;
+  --surface: #17201d;
+  --surface-2: #1d2724;
+  --ink: #e6ebe8;
+  --muted: #95a39d;
+  --line: #2b3632;
+  --brand: #3fa785;
+  --brand-hover: #52b896;
+  --brand-soft: #1b3a31;
+  --brand-ink: #08201a;
+  --side: #0b1d19;
+  --side-ink: #cfdcd7;
+  --side-muted: #7d958c;
+  --side-active: #173a32;
+  --amber: #e0a94a;
+  --amber-soft: #352a15;
+  --red: #ef7d70;
+  --red-soft: #3a1d1a;
+  --blue: #86b3dc;
+  --blue-soft: #18283a;
+  --green: #6fcf98;
+  --green-soft: #16301f;
+  color-scheme: dark;
 }
 
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-ink: var(--brand-ink);
+  --color-side: var(--side);
+  --color-side-ink: var(--side-ink);
+  --color-side-muted: var(--side-muted);
+  --color-side-active: var(--side-active);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-red: var(--red);
+  --color-red-soft: var(--red-soft);
+  --color-blue: var(--blue);
+  --color-blue-soft: var(--blue-soft);
+  --color-green: var(--green);
+  --color-green-soft: var(--green-soft);
+  --font-sans: var(--font-ui);
+}
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+[dir='rtl'] body { font-family: var(--font-ar); }
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Plaque : le seul élément « signature ». Les plaques algériennes sont blanches à caractères noirs. */
+.plate {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border: 1.5px solid #18211e;
+  border-radius: 4px;
+  background: #fff;
+  color: #111;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+/* Impression des documents : seule la zone .print-area est imprimée */
 @media print {
-  body {
-    background: #ffffff !important;
-    color: #000000 !important;
-  }
-  .no-print {
-    display: none !important;
-  }
-  .print-only {
-    display: block !important;
-  }
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  * { overflow: visible !important; max-height: none !important; }
+  .fixed, .sticky, [role='dialog'] { position: static !important; transform: none !important; }
+  .print-area { position: absolute; top: 0; left: 0; width: 100%; padding: 0 !important; background: #fff; color: #000; }
+  .no-print { display: none !important; }
+  @page { margin: 14mm; }
 }
