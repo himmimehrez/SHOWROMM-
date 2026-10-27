@@ -10,7 +10,7 @@ Décisions prises par le responsable du projet le 26/10/2026. Elles s'appliquent
 | 4 | Documents de vente | Contrat, reçus et bon de sortie. **Une facture est aussi générée dans l'application**, avec un **taux de TVA choisi pour chaque vente : 0 %, 9 % ou 19 %**. |
 
 | 5 | Prix saisis | Le prix affiché du véhicule est saisi **hors taxes (HT)**. |
-| 6 | Calcul de la TVA sur une vente | **Au choix de l'utilisateur, vente par vente :**<br>**a) Par taux** : il saisit le montant HT **ou** TTC, choisit 0 %, 9 % ou 19 %, et le système calcule le reste.<br>**b) Montants saisis** : il saisit lui-même le HT et le TTC, et le système en déduit le montant de TVA (TTC − HT) et le taux effectif. Ce mode sert notamment à la TVA sur la marge d'un véhicule d'occasion. |
+| 6 | Calcul de la TVA sur une vente | **Au choix de l'utilisateur, vente par vente :**<br>**a) Par taux** : il saisit le montant HT **ou** TTC, choisit 0 %, 9 % ou 19 %, et le système calcule le reste.<br>**b) Montants saisis** : il saisit lui-même le HT et le TTC, et le système en déduit le montant de TVA (TTC − HT) et le taux effectif. Ce mode sert notamment à la TVA sur la marge d'un véhicule d'occasion.<br>**c) Prix direct, sans TVA** : il saisit un montant final, déjà calculé de son côté. Le système ne calcule ni ne détaille de TVA : ce montant est celui que le client paie. |
 
 ## Conséquences pour le calcul
 
@@ -18,6 +18,7 @@ Décisions prises par le responsable du projet le 26/10/2026. Elles s'appliquent
 - Mode « par taux », saisie TTC : HT = TTC ÷ (1 + taux), arrondi au dinar ; TVA = TTC − HT.
 - Mode « montants saisis » : TVA = TTC − HT. Le TTC doit être supérieur ou égal au HT, sinon la saisie est refusée.
 - La remise s'applique au HT, avant le calcul de la TVA.
+- Mode « prix direct » : montant à payer = montant saisi, TVA = 0 et non détaillée. Le chiffre d'affaires est égal à ce montant. Sur la facture, aucune ligne de TVA n'apparaît. Le comptable doit valider ce cas, car le décret 05-468 demande d'indiquer les taxes dues.
 - **Montant dû par le client = TTC.** Les encaissements, le reste à payer, les créances et le blocage de la livraison se calculent sur le TTC.
 - Le chiffre d'affaires et la marge se calculent sur le **HT** : la TVA collectée n'est pas un revenu du showroom. Elle est suivie à part dans les rapports.
 
