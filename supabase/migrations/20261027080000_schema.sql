@@ -77,6 +77,9 @@ create table public.depots (
   created_at  timestamptz not null default now()
 );
 
+-- Dépôt créé d'office, pour pouvoir saisir des véhicules dès le premier jour
+insert into public.depots (code, nom) values ('SHW', 'Showroom principal');
+
 create table public.profile_depots (
   profile_id uuid not null references public.profiles (id) on delete cascade,
   depot_id   uuid not null references public.depots (id) on delete cascade,
