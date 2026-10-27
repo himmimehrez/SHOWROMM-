@@ -1,81 +1,101 @@
 import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { Plus } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { useApp } from '../app-context';
-import { db } from '../lib/db';
-import { createUser, updateUser } from '../lib/auth';
-import { ROLE_LABELS, ROLE_PERMISSIONS } from '../lib/permissions';
+import { useTable } from '../lib/data';
+import { api } from '../lib/api';
+import { useDepots } from '../lib/hooks';
+import { ROLE_HELP, ROLE_LABELS } from '../lib/permissions';
 import { date } from '../lib/format';
-import type { Role, User } from '../lib/types';
+import type { Profile, ProfileDepot, Role } from '../lib/types';
 import { DataTable, type Column } from '../components/DataTable';
 import { AsyncButton, Badge, Button, Field, Input, Modal, PageHeader, Panel, Select } from '../components/ui';
 import { useToast } from '../components/toast';
 
-const ROLE_HELP: Record<Role, string> = {
-  admin: 'Tout, y compris les comptes et les paramètres.',
-  gerant: 'Tout sauf la gestion des comptes : prix, remises, annulations, achats, rapports.',
-  commercial: 'Clients, création de ventes et livraisons. Ne voit ni les coûts ni les marges, n’encaisse pas.',
-  caissier: 'Caisse, encaissements, dépenses et clients. Ne voit ni les coûts ni les marges.',
-};
-
-function UserModal({ initial, onClose }: { initial?: User; onClose: () => void }) {
-  const { user } = useApp();
+function UserModal({ profile, depotsActuels, onClose }: { profile: Profile; depotsActuels: string[]; onClose: () => void }) {
   const toast = useToast();
-  const [f, setF] = useState({ nom: initial?.nom ?? '', login: initial?.login ?? '', role: initial?.role ?? ('commercial' as Role), password: '', actif: initial?.actif ?? true });
+  const { depots } = useDepots();
+  const [f, setF] = useState({ nom: profile.nom, role: profile.role, actif: profile.actif, tous_depots: profile.tous_depots, depots: depotsActuels });
+  const toggleDepot = (id: string) => setF((x) => ({ ...x, depots: x.depots.includes(id) ? x.depots.filter((d) => d !== id) : [...x.depots, id] }));
   return (
-    <Modal open onClose={onClose} title={initial ? `Modifier ${initial.nom}` : 'Nouvel utilisateur'} footer={
+    <Modal open onClose={onClose} title={profile.email} footer={
       <>
         <Button onClick={onClose}>Annuler</Button>
-        <AsyncButton variant="primary" onRun={async () => {
-          const ok = initial
-            ? await toast.run(() => updateUser(user, initial.id, { nom: f.nom, role: f.role, actif: f.actif, password: f.password || undefined }), 'Utilisateur mis à jour')
-            : await toast.run(() => createUser(user, { nom: f.nom, login: f.login, password: f.password, role: f.role }), 'Utilisateur créé');
-          if (ok) onClose();
+        <AsyncButton variant="primary" disabled={!f.tous_depots && f.depots.length === 0} onRun={async () => {
+          if (await toast.run(() => api.profileUpdate(profile.id, f), 'Utilisateur mis à jour')) onClose();
         }}>Enregistrer</AsyncButton>
       </>
     }>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Nom complet"><Input value={f.nom} onChange={(e) => setF({ ...f, nom: e.target.value })} /></Field>
-        <Field label="Identifiant"><Input value={f.login} onChange={(e) => setF({ ...f, login: e.target.value })} disabled={Boolean(initial)} autoCapitalize="none" /></Field>
-        <Field label="Rôle" hint={ROLE_HELP[f.role]} className="sm:col-span-2">
+      <div className="space-y-4">
+        <Field label="Nom affiché"><Input value={f.nom} onChange={(e) => setF({ ...f, nom: e.target.value })} /></Field>
+        <Field label="Rôle" hint={ROLE_HELP[f.role]}>
           <Select value={f.role} onChange={(e) => setF({ ...f, role: e.target.value as Role })}>
             {Object.entries(ROLE_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </Select>
         </Field>
-        <Field label={initial ? 'Nouveau mot de passe (laisser vide pour ne pas changer)' : 'Mot de passe initial'} hint="8 caractères minimum, lettres et chiffres" className="sm:col-span-2">
-          <Input type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} autoComplete="new-password" />
-        </Field>
-        {initial && <label className="flex items-center gap-2 text-[13px] sm:col-span-2"><input type="checkbox" checked={f.actif} onChange={(e) => setF({ ...f, actif: e.target.checked })} /> Compte actif (décocher bloque immédiatement la connexion, l’historique est conservé)</label>}
+        <label className="flex items-start gap-2 text-[13px]">
+          <input type="checkbox" checked={f.actif} onChange={(e) => setF({ ...f, actif: e.target.checked })} className="mt-0.5" />
+          <span>Compte actif. Décocher bloque immédiatement l'accès ; l'historique est conservé.</span>
+        </label>
+        {f.role !== 'admin' && f.role !== 'gerant' && f.role !== 'audit' && (
+          <div className="rounded-lg border border-line p-3">
+            <label className="flex items-center gap-2 text-[13px] font-medium">
+              <input type="checkbox" checked={f.tous_depots} onChange={(e) => setF({ ...f, tous_depots: e.target.checked })} /> Accès à tous les dépôts
+            </label>
+            {!f.tous_depots && (
+              <div className="mt-2 grid gap-1 sm:grid-cols-2">
+                {depots.map((d) => (
+                  <label key={d.id} className="flex items-center gap-2 text-[13px]">
+                    <input type="checkbox" checked={f.depots.includes(d.id)} onChange={() => toggleDepot(d.id)} /> {d.nom}
+                  </label>
+                ))}
+                {f.depots.length === 0 && <p className="text-xs text-red sm:col-span-2">Choisissez au moins un dépôt.</p>}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </Modal>
   );
 }
 
 export function UtilisateursPage() {
-  const users = useLiveQuery(() => db.users.toArray(), []);
-  const [edit, setEdit] = useState<User | 'new' | null>(null);
-  const columns: Column<User>[] = [
-    { key: 'nom', header: 'Nom', sortValue: (u) => u.nom, render: (u) => <div><div className="font-medium">{u.nom}</div><div className="text-xs text-muted">{u.login}</div></div> },
+  const profiles = useTable<Profile>('profiles');
+  const liens = useTable<ProfileDepot>('profile_depots') ?? [];
+  const { depotById } = useDepots();
+  const [edit, setEdit] = useState<Profile | null>(null);
+  const enAttente = (profiles ?? []).filter((p) => !p.actif).length;
+
+  const columns: Column<Profile>[] = [
+    { key: 'nom', header: 'Utilisateur', sortValue: (u) => u.nom || u.email, render: (u) => <div><div className="font-medium">{u.nom || '—'}</div><div className="text-xs text-muted">{u.email}</div></div> },
     { key: 'role', header: 'Rôle', sortValue: (u) => u.role, render: (u) => <Badge tone={u.role === 'admin' ? 'brand' : 'neutral'}>{ROLE_LABELS[u.role]}</Badge> },
-    { key: 'actif', header: 'Statut', render: (u) => u.actif ? <Badge tone="green">Actif</Badge> : <Badge tone="red">Désactivé</Badge> },
+    { key: 'depots', header: 'Dépôts', hideOnMobile: true, render: (u) => u.tous_depots || ['admin', 'gerant', 'audit'].includes(u.role)
+      ? <span className="text-muted">Tous</span>
+      : liens.filter((l) => l.profile_id === u.id).map((l) => depotById.get(l.depot_id)?.code).join(', ') || '—' },
+    { key: 'actif', header: 'Statut', sortValue: (u) => (u.actif ? 1 : 0), render: (u) => u.actif ? <Badge tone="green">Actif</Badge> : <Badge tone="amber">En attente / désactivé</Badge> },
     { key: 'cree', header: 'Créé le', sortValue: (u) => u.created_at, render: (u) => date(u.created_at), hideOnMobile: true },
   ];
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Utilisateurs" description="Un compte par personne : chaque opération est enregistrée au nom de son auteur." actions={<Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={() => setEdit('new')}>Nouvel utilisateur</Button>} />
-      <DataTable rows={users} columns={columns} rowKey={(u) => u.id} initialSort={{ key: 'nom', dir: 'asc' }} onRowClick={(u) => setEdit(u)} />
+      <PageHeader title="Utilisateurs" description={enAttente > 0 ? `${enAttente} compte(s) en attente d'activation.` : 'Un compte par personne : chaque opération est enregistrée au nom de son auteur.'} />
+      <Panel>
+        <div className="flex items-start gap-3 text-[13px]">
+          <UserPlus className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+          <p>Pour ajouter quelqu'un : la personne crée son compte depuis l'écran de connexion (« Créer un compte ») avec son adresse e-mail. Son compte apparaît ici en attente : ouvrez-le, choisissez son rôle et ses dépôts, puis cochez « Compte actif ».</p>
+        </div>
+      </Panel>
+      <DataTable rows={profiles} columns={columns} rowKey={(u) => u.id} initialSort={{ key: 'actif', dir: 'asc' }} onRowClick={(u) => setEdit(u)} />
       <Panel title="Ce que chaque rôle peut faire">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
             <div key={r}>
               <div className="font-semibold">{ROLE_LABELS[r]}</div>
               <p className="mt-1 text-[13px] text-muted">{ROLE_HELP[r]}</p>
-              <p className="mt-1 text-xs text-muted">{ROLE_PERMISSIONS[r].length} permission(s)</p>
             </div>
           ))}
         </div>
       </Panel>
-      {edit && <UserModal initial={edit === 'new' ? undefined : edit} onClose={() => setEdit(null)} />}
+      {edit && <UserModal profile={edit} depotsActuels={liens.filter((l) => l.profile_id === edit.id).map((l) => l.depot_id)} onClose={() => setEdit(null)} />}
     </div>
   );
 }

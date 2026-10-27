@@ -17,12 +17,23 @@ const dateTimeFmt = new Intl.DateTimeFormat('fr-FR', {
 });
 
 /** JJ/MM/AAAA */
-export function date(ts: number | undefined | null): string {
-  return ts ? dateFmt.format(ts) : '—';
+type When = number | string | undefined | null;
+
+/** Accepte un horodatage, une date ISO ou une date AAAA-MM-JJ */
+export function toTime(v: When): number {
+  if (v === null || v === undefined || v === '') return NaN;
+  if (typeof v === 'number') return v;
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) ? Date.parse(`${v}T12:00:00+01:00`) : Date.parse(v);
 }
 
-export function dateTime(ts: number | undefined | null): string {
-  return ts ? dateTimeFmt.format(ts).replace(',', ' à') : '—';
+export function date(v: When): string {
+  const t = toTime(v);
+  return Number.isNaN(t) ? '—' : dateFmt.format(t);
+}
+
+export function dateTime(v: When): string {
+  const t = toTime(v);
+  return Number.isNaN(t) ? '—' : dateTimeFmt.format(t).replace(',', ' à');
 }
 
 /** Clé AAAA-MM-JJ dans le fuseau d'Alger (pour regrouper par jour) */
@@ -60,12 +71,14 @@ export function toInputDate(ts: number): string {
   return dayKey(ts);
 }
 
-export const MODE_LABELS = {
+export const MODE_LABELS: Record<string, string> = {
   especes: 'Espèces',
   cheque: 'Chèque',
+  cheque_certifie: 'Chèque certifié',
   virement: 'Virement',
   tpe: 'Carte (TPE)',
-} as const;
+  traite: 'Traite',
+};
 
 /** Export CSV compatible Excel (séparateur ; et BOM UTF-8) */
 export function downloadCsv(filename: string, rows: (string | number)[][]) {

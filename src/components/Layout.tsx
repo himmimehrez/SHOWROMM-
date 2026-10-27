@@ -1,16 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import {
   LayoutDashboard, BarChart3, Car, ArrowLeftRight, PackageCheck, Truck, Receipt, Users, Wallet, Banknote,
-  UserCog, Settings, ScrollText, Bell, Search, Plus, Menu, X, LogOut, Moon, Languages, CircleDot,
+  UserCog, Settings, ScrollText, Bell, Search, Plus, Menu, X, LogOut, Moon, Languages, CircleDot, FileCheck2, WifiOff,
 } from 'lucide-react';
 import { useApp, type Page } from '../app-context';
-import { db } from '../lib/db';
+import { useTable, useLoadError } from '../lib/data';
 import { useAlerts, useOpenCash } from '../lib/hooks';
-import { isDemoLoaded } from '../lib/demo';
+import { BACKEND_KIND } from '../lib/backend';
 import { ROLE_LABELS, type Permission } from '../lib/permissions';
 import { date, da } from '../lib/format';
 import type { I18nKey } from '../lib/i18n';
+import type { Client, Vehicule, Vente } from '../lib/types';
 import { Button, cx } from './ui';
 
 interface NavItem { page: Page; key: I18nKey; icon: React.ElementType; perm?: Permission }
@@ -27,12 +27,13 @@ const NAV: { group: I18nKey; items: NavItem[] }[] = [
   { group: 'nav.parc', items: [
     { page: 'vehicules', key: 'nav.vehicules', icon: Car },
     { page: 'mouvements', key: 'nav.mouvements', icon: ArrowLeftRight },
-    { page: 'achats', key: 'nav.achats', icon: PackageCheck, perm: 'achats.gerer' },
+    { page: 'achats', key: 'nav.achats', icon: PackageCheck, perm: 'achats.voir' },
     { page: 'fournisseurs', key: 'nav.fournisseurs', icon: Truck, perm: 'fournisseurs.gerer' },
   ] },
   { group: 'nav.tresorerie', items: [
-    { page: 'caisse', key: 'nav.caisse', icon: Wallet, perm: 'caisse.operer' },
-    { page: 'depenses', key: 'nav.depenses', icon: Banknote, perm: 'depenses.gerer' },
+    { page: 'paiements', key: 'nav.paiements', icon: FileCheck2, perm: 'paiements.valider' },
+    { page: 'caisse', key: 'nav.caisse', icon: Wallet, perm: 'caisse.voir' },
+    { page: 'depenses', key: 'nav.depenses', icon: Banknote, perm: 'depenses.voir' },
   ] },
   { group: 'nav.admin', items: [
     { page: 'utilisateurs', key: 'nav.utilisateurs', icon: UserCog, perm: 'utilisateurs.gerer' },
@@ -41,7 +42,7 @@ const NAV: { group: I18nKey; items: NavItem[] }[] = [
   ] },
 ];
 
-export function pageAllowed(page: Page, can: (p: Permission) => boolean) {
+export function pageAllowed(page: Page, can: (p: string) => boolean) {
   for (const g of NAV) for (const it of g.items) if (it.page === page) return !it.perm || can(it.perm);
   return true;
 }
@@ -81,10 +82,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                       key={it.page}
                       onClick={() => { go(it.page); onClose(); }}
                       aria-current={active ? 'page' : undefined}
-                      className={cx(
-                        'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-start text-[13.5px]',
-                        active ? 'bg-side-active text-white' : 'text-side-ink hover:bg-white/5',
-                      )}
+                      className={cx('flex w-full items-center gap-3 rounded-lg px-3 py-2 text-start text-[13.5px]', active ? 'bg-side-active text-white' : 'text-side-ink hover:bg-white/5')}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
                       {t(it.key)}
@@ -115,20 +113,22 @@ function GlobalSearch() {
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, () => setOpen(false));
   const needle = q.trim().toLowerCase();
+  const vehicules = useTable<Vehicule>(needle.length >= 2 ? 'vehicules' : null);
+  const clients = useTable<Client>(needle.length >= 2 ? 'clients' : null);
+  const ventes = useTable<Vente>(needle.length >= 2 ? 'ventes' : null);
 
-  const results = useLiveQuery(async () => {
+  const results = useMemo(() => {
     if (needle.length < 2) return [];
-    const [veh, cli, ven] = await Promise.all([
-      db.vehicules.filter((v) => `${v.reference} ${v.vin} ${v.immatriculation} ${v.marque} ${v.modele}`.toLowerCase().includes(needle)).limit(5).toArray(),
-      db.clients.filter((c) => `${c.nom} ${c.telephone}`.toLowerCase().includes(needle)).limit(5).toArray(),
-      db.ventes.filter((v) => `${v.numero} ${v.vehicule_libelle}`.toLowerCase().includes(needle)).limit(5).toArray(),
-    ]);
+    const has = (s: string) => s.toLowerCase().includes(needle);
     return [
-      ...veh.map((v) => ({ id: v.id, label: `${v.marque} ${v.modele}`, sub: `${v.reference}${v.vin ? ' · ' + v.vin : ''}`, kind: 'Véhicule', go: () => go('vehicules', { open: v.id }) })),
-      ...cli.map((c) => ({ id: c.id, label: c.nom, sub: c.telephone, kind: 'Client', go: () => go('clients', { open: c.id }) })),
-      ...ven.map((v) => ({ id: v.id, label: v.numero, sub: v.vehicule_libelle, kind: 'Vente', go: () => go('ventes', { open: v.id }) })),
+      ...(vehicules ?? []).filter((v) => has(`${v.reference} ${v.vin} ${v.immatriculation} ${v.marque} ${v.modele}`)).slice(0, 5)
+        .map((v) => ({ id: v.id, label: `${v.marque} ${v.modele}`, sub: `${v.reference}${v.vin ? ' · ' + v.vin : ''}`, kind: 'Véhicule', go: () => go('vehicules', { open: v.id }) })),
+      ...(clients ?? []).filter((c) => has(`${c.nom} ${c.telephone}`)).slice(0, 5)
+        .map((c) => ({ id: c.id, label: c.nom, sub: c.telephone, kind: 'Client', go: () => go('clients', { open: c.id }) })),
+      ...(ventes ?? []).filter((v) => has(`${v.numero} ${v.vehicule_libelle} ${v.facture_numero ?? ''}`)).slice(0, 5)
+        .map((v) => ({ id: v.id, label: v.numero, sub: v.vehicule_libelle, kind: 'Vente', go: () => go('ventes', { open: v.id }) })),
     ];
-  }, [needle]);
+  }, [needle, vehicules, clients, ventes, go]);
 
   return (
     <div ref={ref} className="relative w-full max-w-md">
@@ -143,8 +143,8 @@ function GlobalSearch() {
       />
       {open && needle.length >= 2 && (
         <div className="absolute inset-x-0 top-11 z-30 overflow-hidden rounded-xl border border-line bg-surface shadow-lg">
-          {results && results.length === 0 && <div className="px-4 py-3 text-muted">Aucun résultat.</div>}
-          {results?.map((r) => (
+          {results.length === 0 && <div className="px-4 py-3 text-muted">{vehicules ? 'Aucun résultat.' : 'Recherche…'}</div>}
+          {results.map((r) => (
             <button key={r.kind + r.id} onClick={() => { r.go(); setOpen(false); setQ(''); }} className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-start hover:bg-surface-2">
               <span className="min-w-0">
                 <span className="block truncate font-medium">{r.label}</span>
@@ -161,7 +161,7 @@ function GlobalSearch() {
 
 function AlertsMenu() {
   const { go, t, can } = useApp();
-  const alerts = useAlerts().filter((a) => pageAllowed(a.page, can));
+  const alerts = useAlerts(can).filter((a) => pageAllowed(a.page, can));
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, () => setOpen(false));
@@ -192,18 +192,20 @@ function ProfileMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, () => setOpen(false));
-  const initials = user.nom.split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+  const name = user.nom || user.email;
+  const initials = name.split(/[^\p{L}]+/u).filter(Boolean).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-2 rounded-lg p-1 pe-2 hover:bg-surface-2" aria-label="Profil">
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-xs font-semibold text-brand-ink">{initials}</span>
         <span className="hidden text-start leading-tight md:block">
-          <span className="block text-[13px] font-medium">{user.nom}</span>
+          <span className="block max-w-40 truncate text-[13px] font-medium">{name}</span>
           <span className="block text-xs text-muted">{ROLE_LABELS[user.role]}</span>
         </span>
       </button>
       {open && (
         <div className="absolute end-0 top-11 z-30 w-60 overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-lg">
+          <div className="truncate px-4 py-2 text-xs text-muted">{user.email}</div>
           <button onClick={() => setLang(lang === 'fr' ? 'ar' : 'fr')} className="flex w-full items-center gap-2.5 px-4 py-2 text-start hover:bg-surface-2">
             <Languages className="h-4 w-4 text-muted" /> {t('top.lang')}
           </button>
@@ -224,8 +226,8 @@ function ProfileMenu() {
 
 function CashChip() {
   const { go, t, can } = useApp();
-  const cash = useOpenCash();
-  if (!can('caisse.operer') || !cash) return null;
+  const cash = useOpenCash(can('caisse.voir'));
+  if (!can('caisse.voir') || !cash) return null;
   return (
     <button onClick={() => go('caisse')} className={cx('hidden items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs sm:flex', cash.session ? 'border-green/40 text-green' : 'border-line text-muted')}>
       <span className={cx('h-2 w-2 rounded-full', cash.session ? 'bg-green' : 'bg-muted')} />
@@ -237,7 +239,7 @@ function CashChip() {
 export function Layout({ children }: { children: React.ReactNode }) {
   const { go, can, t } = useApp();
   const [menu, setMenu] = useState(false);
-  const demo = useLiveQuery(() => isDemoLoaded(), []);
+  const loadError = useLoadError();
   const today = useMemo(() => date(Date.now()), []);
   return (
     <div className="flex min-h-full">
@@ -253,16 +255,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <CashChip />
             {can('ventes.creer') && (
               <span className="hidden sm:block">
-                <Button variant="primary" size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => go('ventes', { nouvelle: '1' })}>
-                  {t('top.newSale')}
-                </Button>
+                <Button variant="primary" size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => go('ventes', { nouvelle: '1' })}>{t('top.newSale')}</Button>
               </span>
             )}
             <AlertsMenu />
             <ProfileMenu />
           </div>
         </header>
-        {demo && <div className="border-b border-amber/30 bg-amber-soft px-5 py-2 text-[13px] text-amber no-print">{t('demo.banner')}</div>}
+        {BACKEND_KIND === 'demo' && <div className="border-b border-amber/30 bg-amber-soft px-5 py-2 text-[13px] text-amber no-print">{t('demo.banner')}</div>}
+        {loadError && (
+          <div role="alert" className="flex items-center gap-2 border-b border-red/30 bg-red-soft px-5 py-2 text-[13px] text-red no-print">
+            <WifiOff className="h-4 w-4" /> {t('load.error')} : {loadError} Nouvel essai automatique dans quelques secondes.
+          </div>
+        )}
         <main className="mx-auto w-full max-w-[1400px] flex-1 px-3 py-5 sm:px-6 sm:py-6">{children}</main>
       </div>
     </div>

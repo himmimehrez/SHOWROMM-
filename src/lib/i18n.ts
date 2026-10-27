@@ -17,6 +17,7 @@ const fr = {
   'nav.ventes': 'Ventes',
   'nav.clients': 'Clients et créances',
   'nav.caisse': 'Caisse',
+  'nav.paiements': 'Chèques et traites',
   'nav.depenses': 'Dépenses',
   'nav.utilisateurs': 'Utilisateurs',
   'nav.parametres': 'Paramètres',
@@ -30,7 +31,8 @@ const fr = {
   'top.lang': 'العربية',
   'top.cashOpen': 'Caisse ouverte',
   'top.cashClosed': 'Caisse fermée',
-  'demo.banner': 'Données de démonstration chargées : ce ne sont pas des opérations réelles. Effacez-les dans Paramètres avant la mise en service.',
+  'demo.banner': 'Version de démonstration : données fictives, enregistrées uniquement dans ce navigateur. La version réelle utilise la base Supabase.',
+  'load.error': 'Impossible de charger les données',
 };
 
 const ar: Partial<Record<keyof typeof fr, string>> = {
@@ -48,6 +50,7 @@ const ar: Partial<Record<keyof typeof fr, string>> = {
   'nav.ventes': 'المبيعات',
   'nav.clients': 'الزبائن والديون',
   'nav.caisse': 'الصندوق',
+  'nav.paiements': 'الشيكات والسفاتج',
   'nav.depenses': 'المصاريف',
   'nav.utilisateurs': 'المستخدمون',
   'nav.parametres': 'الإعدادات',
@@ -61,7 +64,8 @@ const ar: Partial<Record<keyof typeof fr, string>> = {
   'top.lang': 'Français',
   'top.cashOpen': 'الصندوق مفتوح',
   'top.cashClosed': 'الصندوق مغلق',
-  'demo.banner': 'تم تحميل بيانات تجريبية: ليست عمليات حقيقية. احذفها من الإعدادات قبل بدء الاستعمال.',
+  'demo.banner': 'نسخة تجريبية: بيانات وهمية محفوظة في هذا المتصفح فقط.',
+  'load.error': 'تعذر تحميل البيانات',
 };
 
 export type I18nKey = keyof typeof fr;

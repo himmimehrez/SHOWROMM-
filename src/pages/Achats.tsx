@@ -1,28 +1,28 @@
 import React, { useMemo, useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { PackageCheck, Plus, Trash2, Ban, Wallet } from 'lucide-react';
 import { useApp } from '../app-context';
-import { db } from '../lib/db';
+import { useTable } from '../lib/data';
+import { api } from '../lib/api';
 import { useDepots, useFournisseursMap, useOpenCash } from '../lib/hooks';
-import * as S from '../lib/services';
 import { da, date, dateTime, downloadCsv, MODE_LABELS, toInputDate } from '../lib/format';
 import { STATUT_ACHAT, ETAT_VEHICULE, CARBURANT, BOITE } from '../lib/labels';
-import type { Achat, LigneAchat, ModePaiement, Vehicule } from '../lib/types';
+import type { Achat, AchatLigne, Fournisseur, PaiementFournisseur, Vehicule } from '../lib/types';
 import { DataTable, type Column } from '../components/DataTable';
-import { AsyncButton, Badge, Button, ConfirmDialog, EmptyState, Field, Input, KeyValue, Modal, Money, MoneyInput, PageHeader, Select, Textarea } from '../components/ui';
+import { AsyncButton, Badge, Button, ConfirmDialog, EmptyState, Field, Input, KeyValue, Modal, Money, MoneyInput, PageHeader, Select } from '../components/ui';
 import { useToast } from '../components/toast';
 
 const year = new Date().getFullYear();
-const emptyLine = (): S.LigneAchatInput => ({ marque: '', modele: '', finition: '', annee: year, couleur: '', vin: '', prix_achat: 0 });
+type LigneInput = { marque: string; modele: string; finition: string; annee: number; couleur: string; vin: string; prix_achat: number };
+const emptyLine = (): LigneInput => ({ marque: '', modele: '', finition: '', annee: year, couleur: '', vin: '', prix_achat: 0 });
 
 function NouvelAchat({ onClose }: { onClose: () => void }) {
-  const { user, go } = useApp();
+  const { go } = useApp();
   const toast = useToast();
-  const fournisseurs = useLiveQuery(() => db.fournisseurs.filter((f) => f.actif).toArray(), []) ?? [];
+  const fournisseurs = (useTable<Fournisseur>('fournisseurs') ?? []).filter((f) => f.actif);
   const [fid, setFid] = useState('');
   const [notes, setNotes] = useState('');
-  const [lignes, setLignes] = useState<S.LigneAchatInput[]>([emptyLine()]);
-  const setL = (i: number, patch: Partial<S.LigneAchatInput>) => setLignes((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
+  const [lignes, setLignes] = useState<LigneInput[]>([emptyLine()]);
+  const setL = (i: number, patch: Partial<LigneInput>) => setLignes((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
   const total = lignes.reduce((s, l) => s + (l.prix_achat || 0), 0);
 
   return (
@@ -31,7 +31,7 @@ function NouvelAchat({ onClose }: { onClose: () => void }) {
         <span className="me-auto self-center text-[13px] text-muted">Total : <strong className="text-ink">{da(total)}</strong> · {lignes.length} véhicule(s)</span>
         <Button onClick={onClose}>Annuler</Button>
         <AsyncButton variant="primary" disabled={!fid} onRun={async () => {
-          if (await toast.run(() => S.createAchat(user, { fournisseur_id: fid, lignes, notes }), 'Commande enregistrée')) onClose();
+          if (await toast.run(() => api.achatCreer(fid, lignes, notes), 'Commande enregistrée')) onClose();
         }}>Enregistrer la commande</AsyncButton>
       </>
     }>
@@ -69,17 +69,16 @@ function NouvelAchat({ onClose }: { onClose: () => void }) {
   );
 }
 
-function ReceptionModal({ achat, ligne, onClose }: { achat: Achat; ligne: LigneAchat; onClose: () => void }) {
-  const { user } = useApp();
+function ReceptionModal({ ligne, onClose }: { ligne: AchatLigne; onClose: () => void }) {
   const toast = useToast();
   const { depots } = useDepots();
-  const [f, setF] = useState({ depot_id: depots.find((d) => d.actif)?.id ?? '', vin: ligne.vin, prix_vente: 0, kilometrage: 0, etat: 'neuf' as Vehicule['etat'], carburant: 'essence' as Vehicule['carburant'], boite: 'manuelle' as Vehicule['boite'] });
+  const [f, setF] = useState({ depot_id: depots.find((d) => d.actif)?.id ?? '', vin: ligne.vin, prix_vente_ht: 0, kilometrage: 0, etat: 'neuf' as Vehicule['etat'], carburant: 'essence' as Vehicule['carburant'], boite: 'manuelle' as Vehicule['boite'] });
   return (
     <Modal open onClose={onClose} title={`Réceptionner ${ligne.marque} ${ligne.modele}`} footer={
       <>
         <Button onClick={onClose}>Annuler</Button>
         <AsyncButton variant="primary" disabled={!f.depot_id} onRun={async () => {
-          if (await toast.run(() => S.receptionnerLigne(user, achat.id, ligne.id, f), 'Véhicule réceptionné et entré en stock')) onClose();
+          if (await toast.run(() => api.achatReceptionner(ligne.id, f), 'Véhicule réceptionné et entré en stock')) onClose();
         }}>Confirmer la réception</AsyncButton>
       </>
     }>
@@ -100,25 +99,25 @@ function ReceptionModal({ achat, ligne, onClose }: { achat: Achat; ligne: LigneA
         <Field label="Boîte">
           <Select value={f.boite} onChange={(e) => setF({ ...f, boite: e.target.value as Vehicule['boite'] })}>{Object.entries(BOITE).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</Select>
         </Field>
-        <Field label="Prix de vente affiché" hint={`Prix d'achat : ${da(ligne.prix_achat)}`} className="sm:col-span-2"><MoneyInput value={f.prix_vente} onChange={(n) => setF({ ...f, prix_vente: n })} /></Field>
+        <Field label="Prix de vente affiché (HT)" hint={`Prix d'achat : ${da(ligne.prix_achat)}`} className="sm:col-span-2"><MoneyInput value={f.prix_vente_ht} onChange={(n) => setF({ ...f, prix_vente_ht: n })} /></Field>
       </div>
     </Modal>
   );
 }
 
 function PaiementFournisseurModal({ achat, reste, onClose }: { achat: Achat; reste: number; onClose: () => void }) {
-  const { user, can } = useApp();
+  const { can } = useApp();
   const toast = useToast();
-  const cash = useOpenCash();
+  const cash = useOpenCash(can('caisse.voir'));
   const [montant, setMontant] = useState(reste);
-  const [mode, setMode] = useState<ModePaiement>('virement');
+  const [mode, setMode] = useState('virement');
   const [ref, setRef] = useState('');
   return (
     <Modal open onClose={onClose} title={`Payer ${achat.numero}`} size="sm" footer={
       <>
         <Button onClick={onClose}>Annuler</Button>
         <AsyncButton variant="primary" disabled={montant <= 0 || montant > reste} onRun={async () => {
-          if (await toast.run(() => S.payerFournisseur(user, achat.id, montant, mode, ref), `Paiement de ${da(montant)} enregistré`)) onClose();
+          if (await toast.run(() => api.fournisseurPayer(achat.id, montant, mode, ref), `Paiement de ${da(montant)} enregistré`)) onClose();
         }}>Enregistrer le paiement</AsyncButton>
       </>
     }>
@@ -126,9 +125,9 @@ function PaiementFournisseurModal({ achat, reste, onClose }: { achat: Achat; res
         <p className="text-[13px] text-muted">Reste à payer : {da(reste)}</p>
         <Field label="Montant" error={montant > reste ? `Maximum ${da(reste)}` : undefined}><MoneyInput value={montant} onChange={setMontant} /></Field>
         <Field label="Mode">
-          <Select value={mode} onChange={(e) => setMode(e.target.value as ModePaiement)}>
+          <Select value={mode} onChange={(e) => setMode(e.target.value)}>
             {can('caisse.operer') && <option value="especes">Espèces (caisse)</option>}
-            <option value="virement">Virement</option><option value="cheque">Chèque</option>
+            <option value="virement">Virement</option><option value="cheque">Chèque</option><option value="traite">Traite</option>
           </Select>
         </Field>
         <Field label="Référence"><Input value={ref} onChange={(e) => setRef(e.target.value)} /></Field>
@@ -139,13 +138,14 @@ function PaiementFournisseurModal({ achat, reste, onClose }: { achat: Achat; res
 }
 
 function AchatDetail({ achat, onClose }: { achat: Achat; onClose: () => void }) {
-  const { user, go } = useApp();
+  const { go, can } = useApp();
   const toast = useToast();
   const fournisseurs = useFournisseursMap();
-  const paiements = useLiveQuery(() => db.paiements_fournisseurs.where('achat_id').equals(achat.id).sortBy('date'), [achat.id]) ?? [];
+  const lignes = useTable<AchatLigne>('achat_lignes', { eq: { achat_id: achat.id }, order: { column: 'position' } }) ?? [];
+  const paiements = useTable<PaiementFournisseur>('paiements_fournisseurs', { eq: { achat_id: achat.id }, order: { column: 'date' } }) ?? [];
   const paye = paiements.reduce((s, p) => s + p.montant, 0);
   const reste = achat.statut === 'annule' ? 0 : achat.montant_total - paye;
-  const [recep, setRecep] = useState<LigneAchat | null>(null);
+  const [recep, setRecep] = useState<AchatLigne | null>(null);
   const [pay, setPay] = useState(false);
   const [cancel, setCancel] = useState(false);
   const st = STATUT_ACHAT[achat.statut];
@@ -153,15 +153,15 @@ function AchatDetail({ achat, onClose }: { achat: Achat; onClose: () => void }) 
   return (
     <Modal open onClose={onClose} title={`Commande ${achat.numero}`} size="lg" footer={
       <>
-        {achat.statut === 'commande' && paiements.length === 0 && <Button icon={<Ban className="h-4 w-4" />} onClick={() => setCancel(true)}>Annuler la commande</Button>}
-        {reste > 0 && <Button variant="primary" icon={<Wallet className="h-4 w-4" />} onClick={() => setPay(true)}>Enregistrer un paiement</Button>}
+        {can('achats.gerer') && achat.statut === 'commande' && paiements.length === 0 && <Button icon={<Ban className="h-4 w-4" />} onClick={() => setCancel(true)}>Annuler la commande</Button>}
+        {can('achats.gerer') && reste > 0 && <Button variant="primary" icon={<Wallet className="h-4 w-4" />} onClick={() => setPay(true)}>Enregistrer un paiement</Button>}
       </>
     }>
       <div className="mb-4 flex gap-2"><Badge tone={st.tone}>{st.label}</Badge>{reste > 0 && <Badge tone="amber">Reste {da(reste)}</Badge>}</div>
       <KeyValue items={[
         ['Fournisseur', fournisseurs.get(achat.fournisseur_id)?.nom ?? '—'],
         ['Date', date(achat.date)],
-        ['Créée par', achat.user],
+        ['Créée par', achat.user_nom],
         ['Montant total', <Money key="t" value={achat.montant_total} strong />],
         ['Payé', <Money key="p" value={paye} />],
       ]} />
@@ -169,7 +169,7 @@ function AchatDetail({ achat, onClose }: { achat: Achat; onClose: () => void }) 
 
       <h3 className="mb-2 mt-6 font-semibold">Véhicules</h3>
       <div className="divide-y divide-line rounded-lg border border-line">
-        {achat.lignes.map((l) => (
+        {lignes.map((l) => (
           <div key={l.id} className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5 text-[13px]">
             <div>
               <div className="font-medium">{l.marque} {l.modele} {l.finition} <span className="font-normal text-muted">{l.annee}{l.couleur ? ` · ${l.couleur}` : ''}</span></div>
@@ -178,8 +178,8 @@ function AchatDetail({ achat, onClose }: { achat: Achat; onClose: () => void }) 
             <div className="flex items-center gap-3">
               <Money value={l.prix_achat} />
               {l.recu
-                ? <button onClick={() => go('vehicules', { open: l.vehicule_id })}><Badge tone="green">Reçu — voir</Badge></button>
-                : achat.statut !== 'annule' && <Button size="sm" variant="primary" onClick={() => setRecep(l)}>Réceptionner</Button>}
+                ? <button onClick={() => l.vehicule_id && go('vehicules', { open: l.vehicule_id })}><Badge tone="green">Reçu — voir</Badge></button>
+                : achat.statut !== 'annule' && can('stock.receptionner') && <Button size="sm" variant="primary" onClick={() => setRecep(l)}>Réceptionner</Button>}
             </div>
           </div>
         ))}
@@ -198,19 +198,20 @@ function AchatDetail({ achat, onClose }: { achat: Achat; onClose: () => void }) 
         </tbody></table>
       )}
 
-      {recep && <ReceptionModal achat={achat} ligne={recep} onClose={() => setRecep(null)} />}
+      {recep && <ReceptionModal ligne={recep} onClose={() => setRecep(null)} />}
       {pay && <PaiementFournisseurModal achat={achat} reste={reste} onClose={() => setPay(false)} />}
       <ConfirmDialog open={cancel} onClose={() => setCancel(false)} title="Annuler la commande" danger confirmLabel="Annuler la commande"
         message="La commande restera visible avec le statut « Annulée »." requireReason="Motif"
-        onConfirm={async (r) => { if (await toast.run(() => S.annulerAchat(user, achat.id, r), 'Commande annulée')) setCancel(false); }} />
+        onConfirm={async (r) => { if (await toast.run(() => api.achatAnnuler(achat.id, r), 'Commande annulée')) setCancel(false); }} />
     </Modal>
   );
 }
 
 export function AchatsPage() {
+  const { can } = useApp();
   const fournisseurs = useFournisseursMap();
-  const achats = useLiveQuery(() => db.achats.toArray(), []);
-  const paiements = useLiveQuery(() => db.paiements_fournisseurs.toArray(), []) ?? [];
+  const achats = useTable<Achat>('achats');
+  const paiements = useTable<PaiementFournisseur>('paiements_fournisseurs') ?? [];
   const [creating, setCreating] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [statut, setStatut] = useState('');
@@ -221,20 +222,16 @@ export function AchatsPage() {
     for (const p of paiements) m.set(p.achat_id, (m.get(p.achat_id) ?? 0) + p.montant);
     return m;
   }, [paiements]);
-
+  const reste = (a: Achat) => (a.statut === 'annule' ? 0 : a.montant_total - (payeById.get(a.id) ?? 0));
   const rows = useMemo(() => (achats ?? []).filter((a) => !statut || a.statut === statut), [achats, statut]);
 
   const columns: Column<Achat>[] = [
     { key: 'numero', header: 'N°', sortValue: (a) => a.numero, render: (a) => <span className="font-medium">{a.numero}</span> },
     { key: 'date', header: 'Date', sortValue: (a) => a.date, render: (a) => date(a.date) },
     { key: 'f', header: 'Fournisseur', sortValue: (a) => fournisseurs.get(a.fournisseur_id)?.nom ?? '', render: (a) => fournisseurs.get(a.fournisseur_id)?.nom ?? '—' },
-    { key: 'recus', header: 'Reçus', align: 'center', render: (a) => `${a.lignes.filter((l) => l.recu).length} / ${a.lignes.length}` },
     { key: 'statut', header: 'Statut', sortValue: (a) => a.statut, render: (a) => <Badge tone={STATUT_ACHAT[a.statut].tone}>{STATUT_ACHAT[a.statut].label}</Badge> },
     { key: 'total', header: 'Montant', align: 'end', sortValue: (a) => a.montant_total, render: (a) => <Money value={a.montant_total} /> },
-    { key: 'reste', header: 'Reste à payer', align: 'end', sortValue: (a) => a.statut === 'annule' ? 0 : a.montant_total - (payeById.get(a.id) ?? 0), render: (a) => {
-      const r = a.statut === 'annule' ? 0 : a.montant_total - (payeById.get(a.id) ?? 0);
-      return r > 0 ? <Money value={r} className="text-amber" /> : <span className="text-muted">—</span>;
-    } },
+    { key: 'reste', header: 'Reste à payer', align: 'end', sortValue: reste, render: (a) => reste(a) > 0 ? <Money value={reste(a)} className="text-amber" /> : <span className="text-muted">—</span> },
   ];
 
   return (
@@ -245,19 +242,19 @@ export function AchatsPage() {
         actions={
           <>
             <Button onClick={() => downloadCsv(`achats-${toInputDate(Date.now())}.csv`, [
-              ['N°', 'Date', 'Fournisseur', 'Véhicules', 'Reçus', 'Statut', 'Montant', 'Payé', 'Reste'],
-              ...rows.map((a) => [a.numero, date(a.date), fournisseurs.get(a.fournisseur_id)?.nom ?? '', a.lignes.length, a.lignes.filter((l) => l.recu).length, STATUT_ACHAT[a.statut].label, a.montant_total, payeById.get(a.id) ?? 0, a.statut === 'annule' ? 0 : a.montant_total - (payeById.get(a.id) ?? 0)]),
+              ['N°', 'Date', 'Fournisseur', 'Statut', 'Montant', 'Payé', 'Reste'],
+              ...rows.map((a) => [a.numero, date(a.date), fournisseurs.get(a.fournisseur_id)?.nom ?? '', STATUT_ACHAT[a.statut].label, a.montant_total, payeById.get(a.id) ?? 0, reste(a)]),
             ])}>Exporter CSV</Button>
-            <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={() => setCreating(true)}>Nouvelle commande</Button>
+            {can('achats.gerer') && <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={() => setCreating(true)}>Nouvelle commande</Button>}
           </>
         }
       />
       <DataTable
-        rows={rows}
+        rows={achats ? rows : undefined}
         columns={columns}
         rowKey={(a) => a.id}
         initialSort={{ key: 'date', dir: 'desc' }}
-        searchText={(a) => `${a.numero} ${fournisseurs.get(a.fournisseur_id)?.nom ?? ''} ${a.lignes.map((l) => `${l.marque} ${l.modele} ${l.vin}`).join(' ')}`}
+        searchText={(a) => `${a.numero} ${fournisseurs.get(a.fournisseur_id)?.nom ?? ''} ${a.notes}`}
         onRowClick={(a) => setOpenId(a.id)}
         filters={
           <Select value={statut} onChange={(e) => setStatut(e.target.value)} className="w-auto" aria-label="Statut">
@@ -265,7 +262,7 @@ export function AchatsPage() {
             {Object.entries(STATUT_ACHAT).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </Select>
         }
-        empty={<EmptyState icon={<PackageCheck className="h-8 w-8" />} title="Aucune commande d'achat" text="Une commande permet de suivre ce qui est attendu, payé et reçu chez chaque fournisseur." action={<Button variant="primary" onClick={() => setCreating(true)}>Nouvelle commande</Button>} />}
+        empty={<EmptyState icon={<PackageCheck className="h-8 w-8" />} title="Aucune commande d'achat" text="Une commande permet de suivre ce qui est attendu, payé et reçu chez chaque fournisseur." action={can('achats.gerer') ? <Button variant="primary" onClick={() => setCreating(true)}>Nouvelle commande</Button> : undefined} />}
       />
       {creating && <NouvelAchat onClose={() => setCreating(false)} />}
       {opened && <AchatDetail achat={opened} onClose={() => setOpenId(null)} />}

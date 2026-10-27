@@ -42,7 +42,7 @@ describe('Base Supabase — sécurité', () => {
     caissier = await db.signUp('caisse@showroom.dz', 'Caissier');
     commercial = await db.signUp('vendeur@showroom.dz', 'Vendeur');
     inactif = await db.signUp('nouveau@showroom.dz', 'Nouveau');
-    depotA = (await one(db.rpc(admin, 'depot_save', { p_id: null, p_code: 'SHW', p_nom: 'Showroom' }))).id;
+    depotA = (await db.admin<Row>(`select id from depots where code = 'SHW'`))[0].id;
     depotB = (await one(db.rpc(admin, 'depot_save', { p_id: null, p_code: 'PARC', p_nom: 'Parc' }))).id;
     for (const [u, role] of [[gerant, 'gerant'], [caissier, 'caissier'], [commercial, 'commercial']] as const) {
       await db.rpc(admin, 'profile_update', { p_id: u.id, p_nom: null, p_role: role, p_actif: true, p_tous_depots: true, p_depots: [] });

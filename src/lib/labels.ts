@@ -1,4 +1,4 @@
-import type { StatutVehicule, EtatVehicule, StatutVente, StatutProspect, SourceProspect, StatutAchat, TypeMouvement, TypeMvtCaisse, Carburant, Boite } from './types';
+import type { StatutVehicule, EtatVehicule, StatutVente, StatutProspect, SourceProspect, StatutAchat, TypeMouvement, TypeMvtCaisse, Carburant, Boite, StatutPaiement } from './types';
 
 type Tone = 'neutral' | 'brand' | 'green' | 'amber' | 'red' | 'blue';
 
@@ -8,6 +8,7 @@ export const STATUT_VEHICULE: Record<StatutVehicule, { label: string; tone: Tone
   vendu: { label: 'Vendu — à livrer', tone: 'blue' },
   livre: { label: 'Livré', tone: 'neutral' },
   bloque: { label: 'Bloqué', tone: 'red' },
+  en_transit: { label: 'En transit', tone: 'amber' },
 };
 
 export const ETAT_VEHICULE: Record<EtatVehicule, string> = {
@@ -65,6 +66,7 @@ export const TYPE_MOUVEMENT: Record<TypeMouvement, string> = {
 
 export const TYPE_MVT_CAISSE: Record<TypeMvtCaisse, string> = {
   encaissement: 'Encaissement client',
+  timbre: 'Droit de timbre',
   remboursement: 'Remboursement client',
   depense: 'Dépense',
   annulation_depense: 'Annulation de dépense',
@@ -83,3 +85,14 @@ export const WILAYAS = [
   '47 - Ghardaïa', '48 - Relizane', '49 - Timimoun', '50 - Bordj Badji Mokhtar', '51 - Ouled Djellal', '52 - Béni Abbès',
   '53 - In Salah', '54 - In Guezzam', '55 - Touggourt', '56 - Djanet', "57 - El M'Ghair", '58 - El Meniaa',
 ];
+
+export const STATUT_PAIEMENT: Record<StatutPaiement, { label: string; tone: Tone }> = {
+  confirme: { label: 'Reçu', tone: 'green' },
+  en_attente: { label: 'En attente banque', tone: 'amber' },
+  encaisse: { label: 'Encaissé', tone: 'green' },
+  rejete: { label: 'Rejeté', tone: 'red' },
+  en_portefeuille: { label: 'En portefeuille', tone: 'blue' },
+  payee: { label: 'Payée', tone: 'green' },
+  impayee: { label: 'Impayée', tone: 'red' },
+  annule: { label: 'Annulé', tone: 'neutral' },
+};

@@ -1,10 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { ArrowLeftRight } from 'lucide-react';
 import { useApp } from '../app-context';
-import { db } from '../lib/db';
+import { useTable } from '../lib/data';
 import { useDepots, useVehiculesMap } from '../lib/hooks';
-import { dateTime, downloadCsv, parseInputDate, toInputDate } from '../lib/format';
+import { dateTime, downloadCsv, toInputDate } from '../lib/format';
 import { TYPE_MOUVEMENT } from '../lib/labels';
 import type { Mouvement } from '../lib/types';
 import { DataTable, type Column } from '../components/DataTable';
@@ -14,19 +13,20 @@ export function MouvementsPage() {
   const { go } = useApp();
   const { depotById } = useDepots();
   const vehicules = useVehiculesMap();
-  const mouvements = useLiveQuery(() => db.mouvements.toArray(), []);
+  const mouvements = useTable<Mouvement>('mouvements');
   const [type, setType] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
 
   const rows = useMemo(() => (mouvements ?? []).filter((m) => {
+    const d = m.date.slice(0, 10);
     if (type && m.type !== type) return false;
-    if (from && m.date < parseInputDate(from)) return false;
-    if (to && m.date >= parseInputDate(to) + 86400000) return false;
+    if (from && d < from) return false;
+    if (to && d > to) return false;
     return true;
   }), [mouvements, type, from, to]);
 
-  const depotName = (id: string) => (id ? depotById.get(id)?.nom ?? '—' : '—');
+  const depotName = (id: string | null) => (id ? depotById.get(id)?.nom ?? '—' : '—');
   const vLabel = (m: Mouvement) => {
     const v = vehicules.get(m.vehicule_id);
     return v ? `${v.reference} — ${v.marque} ${v.modele}` : '—';
@@ -40,7 +40,7 @@ export function MouvementsPage() {
     { key: 'vers', header: 'Vers', render: (m) => (m.type === 'livraison' ? 'Client' : depotName(m.depot_to)), hideOnMobile: true },
     { key: 'ref', header: 'Référence', render: (m) => m.ref, hideOnMobile: true },
     { key: 'motif', header: 'Motif', render: (m) => <span className="text-muted">{m.motif}</span>, hideOnMobile: true },
-    { key: 'user', header: 'Par', render: (m) => m.user },
+    { key: 'user', header: 'Par', render: (m) => m.user_nom },
   ];
 
   return (
@@ -50,15 +50,15 @@ export function MouvementsPage() {
         description="Historique de chaque entrée, transfert, vente, blocage et sortie. Les mouvements ne se modifient pas. Pour transférer un véhicule, ouvrez sa fiche."
         actions={<Button onClick={() => downloadCsv(`mouvements-${toInputDate(Date.now())}.csv`, [
           ['Date', 'Mouvement', 'Véhicule', 'VIN', 'De', 'Vers', 'Référence', 'Motif', 'Par'],
-          ...rows.map((m) => [dateTime(m.date), TYPE_MOUVEMENT[m.type], vLabel(m), vehicules.get(m.vehicule_id)?.vin ?? '', depotName(m.depot_from), m.type === 'livraison' ? 'Client' : depotName(m.depot_to), m.ref, m.motif, m.user]),
+          ...rows.map((m) => [dateTime(m.date), TYPE_MOUVEMENT[m.type], vLabel(m), vehicules.get(m.vehicule_id)?.vin ?? '', depotName(m.depot_from), m.type === 'livraison' ? 'Client' : depotName(m.depot_to), m.ref, m.motif, m.user_nom]),
         ])}>Exporter CSV</Button>}
       />
       <DataTable
-        rows={rows}
+        rows={mouvements ? rows : undefined}
         columns={columns}
         rowKey={(m) => m.id}
         initialSort={{ key: 'date', dir: 'desc' }}
-        searchText={(m) => `${vLabel(m)} ${vehicules.get(m.vehicule_id)?.vin ?? ''} ${m.ref} ${m.motif} ${m.user}`}
+        searchText={(m) => `${vLabel(m)} ${vehicules.get(m.vehicule_id)?.vin ?? ''} ${m.ref} ${m.motif} ${m.user_nom}`}
         onRowClick={(m) => go('vehicules', { open: m.vehicule_id })}
         filters={
           <>
